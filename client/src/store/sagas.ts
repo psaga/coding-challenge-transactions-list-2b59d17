@@ -6,6 +6,7 @@ import {
   TransactionReceipt,
   BrowserProvider,
   Signer,
+  parseEther,
 } from "ethers";
 
 import apolloClient from "../apollo/client";
@@ -14,10 +15,10 @@ import { SaveTransaction } from "../queries";
 
 function* sendTransaction() {
   const provider = new JsonRpcProvider("http://localhost:8545");
-
   const walletProvider = new BrowserProvider(window.web3.currentProvider);
 
   const signer: Signer = yield walletProvider.getSigner();
+  const fromAddress: string = yield signer.getAddress();
 
   const accounts: Array<{ address: string }> = yield provider.listAccounts();
 
@@ -27,10 +28,12 @@ function* sendTransaction() {
     const random = Math.round(Math.random() * (max - min) + min);
     return accounts[random].address;
   };
+  const nonce:number = yield provider.getTransactionCount(fromAddress, 'latest');
 
   const transaction = {
+    nonce,
     to: randomAddress(),
-    value: 1000000000000000000,
+    value: parseEther("1.0"),
   };
 
   try {
@@ -58,7 +61,7 @@ function* sendTransaction() {
       variables,
     });
   } catch (error) {
-    //
+    console.log(error)
   }
 }
 
