@@ -1,20 +1,56 @@
-import React, { useCallback } from "react";
-import { useDispatch } from "react-redux";
+import React, { useCallback, useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useForm } from "react-hook-form";
 
-import { Actions } from "../types";
+import { Actions, TransactionPayload } from "../types";
+import { BrowserProvider } from "ethers";
+import { RootState } from "../store/reducers";
+import { navigate } from "./NaiveRouter";
 
 const SendTransaction: React.FC = () => {
+  const [sender, setSender] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(true);
+  const [payload, setPayload] = useState<TransactionPayload>({
+    to: '',
+    value: ''
+  });
   const dispatch = useDispatch();
   const { handleSubmit } = useForm();
+  const dataTransaction = useSelector((state: RootState) => state.dataTransaction);
 
-  const onSubmit = (data: any) => console.log(data);
+  useEffect(() => {
+    const getSender = async () => {
+      const walletProvider = new BrowserProvider(window.web3.currentProvider);
+      const signer = await walletProvider.getSigner();
+      const fromAddress = await signer.getAddress();
+
+      setSender(fromAddress);
+    };
+    
+    getSender();
+  }, []);
+  
+  useEffect(() => {
+    if (dataTransaction) { 
+      navigate(`/transaction/${dataTransaction.txHash}`);
+      setIsModalOpen(false);
+    }
+  }, [dataTransaction]);
 
   const handleDispatch = useCallback(() => {
     dispatch({
       type: Actions.SendTransaction,
+      payload
     });
-  }, [dispatch]);
+  }, [dispatch, payload]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setPayload(prevState => ({
+      ...prevState,
+      [name]: value
+    }));
+  };
 
   return (
     <>
@@ -25,11 +61,11 @@ const SendTransaction: React.FC = () => {
       >
         Send
       </button>
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(handleDispatch)}>
         <div
           id="hs-basic-modal"
-          className="hs-overlay hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto bg-black bg-opacity-60"
-        >
+          className={`hs-overlay ${isModalOpen ? '' : 'hidden'} w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto bg-black bg-opacity-60`}
+          >
           <div className="hs-overlay-open:opacity-100 hs-overlay-open:duration-500 opacity-100 transition-all w-full m-3 mx-auto flex flex-col h-full items-center justify-center">
             <div className="bg-white border shadow-sm rounded-xl w-modal">
               <div className="flex justify-between items-center py-3 px-4 border-b">
@@ -72,6 +108,7 @@ const SendTransaction: React.FC = () => {
                   id="input-sender"
                   className="opacity-70 pointer-events-none py-3 px-4 block bg-gray-50 border-gray-800 rounded-md text-sm focus:border-blue-500 focus:ring-blue-500 w-full"
                   placeholder="Sender Address (Autocompleted)"
+                  value={sender}
                   disabled
                 />
                 <label
@@ -81,11 +118,14 @@ const SendTransaction: React.FC = () => {
                   Recipient:
                 </label>
                 <input
+                  name="to"
                   type="text"
                   id="input-recipient"
-                  className="opacity-70 pointer-events-none py-3 px-4 block bg-gray-50 border-gray-800 rounded-md text-sm focus:border-blue-500 focus:ring-blue-500 w-full"
+                  className="opacity-70 py-3 px-4 block bg-gray-50 border-gray-800 rounded-md text-sm focus:border-blue-500 focus:ring-blue-500 w-full"
                   placeholder="Recipient Address"
-                  disabled
+                  onChange={handleChange}
+                  required
+                  pattern="^0x[a-fA-F0-9]{40}$"
                 />
                 <label
                   htmlFor="input-amount"
@@ -94,11 +134,15 @@ const SendTransaction: React.FC = () => {
                   Amount:
                 </label>
                 <input
+                  name="value"
                   type="number"
                   id="input-amount"
-                  className="opacity-70 pointer-events-none py-3 px-4 block bg-gray-50 border-gray-800 rounded-md text-sm focus:border-blue-500 focus:ring-blue-500 w-full"
+                  className="opacity-70 py-3 px-4 block bg-gray-50 border-gray-800 rounded-md text-sm focus:border-blue-500 focus:ring-blue-500 w-full"
                   placeholder="Amount"
-                  disabled
+                  onChange={handleChange}
+                  required
+                  min="0.0001"
+                  step="0.0001"
                 />
               </div>
               <div className="flex justify-end items-center gap-x-2 py-3 px-4 border-t">
@@ -110,8 +154,7 @@ const SendTransaction: React.FC = () => {
                   Close
                 </button>
                 <button
-                  type="button"
-                  onClick={handleDispatch}
+                  type="submit"
                   className="py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border border-transparent font-semibold bg-blue-500 text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all text-sm"
                 >
                   Send

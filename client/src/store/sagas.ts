@@ -1,4 +1,4 @@
-import { takeEvery } from "redux-saga/effects";
+import { put, takeEvery } from "redux-saga/effects";
 import {
   JsonRpcProvider,
   Transaction,
@@ -10,31 +10,23 @@ import {
 } from "ethers";
 
 import apolloClient from "../apollo/client";
-import { Actions } from "../types";
+import { Actions, TransactionPayload } from "../types";
 import { SaveTransaction } from "../queries";
-import { navigate } from "../components/NaiveRouter";
+import { PayloadAction } from "@reduxjs/toolkit";
 
-function* sendTransaction() {
+function* sendTransaction(action: PayloadAction<TransactionPayload>) {
   const provider = new JsonRpcProvider("http://localhost:8545");
   const walletProvider = new BrowserProvider(window.web3.currentProvider);
 
   const signer: Signer = yield walletProvider.getSigner();
   const fromAddress: string = yield signer.getAddress();
 
-  const accounts: Array<{ address: string }> = yield provider.listAccounts();
-
-  const randomAddress = () => {
-    const min = 1;
-    const max = 19;
-    const random = Math.round(Math.random() * (max - min) + min);
-    return accounts[random].address;
-  };
   const nonce:number = yield provider.getTransactionCount(fromAddress, 'latest');
 
   const transaction = {
     nonce,
-    to: randomAddress(),
-    value: parseEther("1.0"),
+    to: action.payload.to,
+    value: parseEther(action.payload.value),
   };
 
   try {
@@ -61,9 +53,9 @@ function* sendTransaction() {
       mutation: SaveTransaction,
       variables,
     });
-    navigate(`/transaction/${receipt.hash}`);
+    yield put({ type: Actions.SendTransactionSuccess, data: { txHash: receipt.hash } });
   } catch (error) {
-    console.log(error)
+    yield put({ type: Actions.SendTransactionFailure, error: error });
   }
 }
 
