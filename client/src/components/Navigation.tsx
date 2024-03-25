@@ -19,6 +19,7 @@ const onboard = Onboard({
 
 const Navigation: React.FC = () => {
   const [wallet, setWallet] = useState<WalletState>();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleConnect = useCallback(async () => {
     const wallets = await onboard.connectWallet();
@@ -33,19 +34,38 @@ const Navigation: React.FC = () => {
     }
   }, []);
 
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
+
   return (
     <header className="flex flex-wrap sm:justify-start sm:flex-nowrap z-50 w-ful text-sm py-4 bg-gray-800">
-      <nav className="max-w-[85rem] w-full mx-auto px-4 sm:flex sm:items-center sm:justify-between">
-        <div className="flex items-center justify-between">
-          <a
-            className="flex-none text-xl font-semibold dark:text-white"
-            href="."
-          >
-            Transactions List
-          </a>
+      <nav className="w-full mx-auto px-4 flex items-center justify-between flex-col sm:flex-row">
+        <div className="flex w-full sm:w-auto justify-between">
+          <div className="flex items-center justify-between">
+            <a
+              className="flex-none text-xl font-semibold dark:text-white"
+              href="."
+            >
+              Transactions List
+            </a>
+          </div>
+          <div className="sm:hidden">
+            <button onClick={toggleMenu} className="py-2 px-4 font-semibold rounded-lg shadow-md text-white bg-blue-500 hover:bg-blue-700">
+              {isMenuOpen ? (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24">
+                  <path d="M120-240v-80h720v80H120Zm0-200v-80h720v80H120Zm0-200v-80h720v80H120Z"/>
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
-        <div className="hs-collapse hidden overflow-hidden transition-all duration-300 basis-full grow sm:block">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-end sm:mt-0 sm:pl-5">
+        <div className={`${isMenuOpen ? 'flex' : 'hidden'} sm:flex flex-col sm:flex-row w-full sm:items-center justify-right transition-all duration-300`}>
+          <div className="sm:flex-row gap-5 items-center justify-end mt-4 sm:mt-0">
             {wallet && (
               <>
                 <SendTransaction />
